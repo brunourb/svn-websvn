@@ -1,0 +1,94 @@
+[PASSO 0 -Terminal colorido DEBIAN]
+/bin/cp /etc/skel/.bashrc ~/
+source ~/.bashrc
+
+
+[PASSO 1 - Preparando ambiente docker]
+================================================================================================
+#Baixando imagem docker
+docker pull debian
+
+#Criando container de teste
+docker run -it debian /bin/bash
+================================================================================================
+[PASSO 2 - Instalando aplicativos]
+
+#Atualizando o repositório
+apt-update
+
+#Instalando aplicativos
+apt-get install apache2 apache2-utils php-xml libapache2-mod-php net-tools wget subversion subversion-tools libapache2-mod-svn lsof iputils-ping -y
+================================================================================================
+[PASSO 3 - Configurando repositórios]
+
+#Criando repositório
+mkdir /home/svn
+cd /home/svn
+
+
+#Criando e testando o repositório
+mkdir test
+svnadmin create /home/svn/test
+cd test
+mkdir trunk tags branches
+svn import <DIRETORIO/CONTEUDO A SER IMPORTADO> file:///home/svn/test -m 'Initial project directories'
+
+#Dando permissão para o servidor web
+chown -R www-data:www-data /home/svn
+
+
+================================================================================================
+[PASSO 4 - Configurando servidor web]
+
+
+#Configurando o Apache
+a2enmod dav_svn
+
+#Configurando apache para disponbilizar serviço
+vim /etc/apache2/apache2.conf
+
+#Adicionar na última linha do arquivo:
+<Location /svn>
+  DAV svn
+  SVNParentPath /home/svn
+</Location>
+
+#Reinicar o apache
+service apache2 restart
+
+
+================================================================================================
+[PASSO 5 - Disponibilizar serviço web]
+
+
+DAV svn
+  SVNParentPath /home/svn
+  AuthType Basic
+  AuthName "My SVN Repositories"
+  AuthUserFile /etc/svn-auth
+  Require valid-user
+
+================================================================================================
+[PASSO 6 - Habilitando autenticação]
+
+Editar o arquivo apache2.conf para:
+
+#Adicionar na última linha do arquivo:
+<Location /svn>
+DAV svn
+  SVNParentPath /home/svn
+  AuthType Basic
+  AuthName "Exemplo repositorios teste"
+  AuthUserFile /etc/svn-auth
+  Require valid-user
+</Location>
+
+
+================================================================================================
+[PASSO 6 - Criando usuário]
+
+htpasswd -cm /etc/svn-auth senai
+
+
+PASSO 7 - Verificar/Validar autenticação
+Acessar endereço: http://172.17.0.2/svn/test/
